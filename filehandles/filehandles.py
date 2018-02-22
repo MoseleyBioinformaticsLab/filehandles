@@ -19,43 +19,42 @@ import zipfile
 import tarfile
 import bz2
 import gzip
-import lzma
 import mimetypes
 from contextlib import closing
+
 
 if sys.version_info.major == 3:
     from urllib.request import urlopen
     from urllib.parse import urlparse
-    from urllib.parse import urljoin
-    from urllib.error import HTTPError
 else:
     from urllib2 import urlopen
     from urlparse import urlparse
-    from urlparse import urljoin
-    from urllib2 import HTTPError
 
 
 openers = []
 
 
 def register(openercls):
-    """
+    """Decorator that adds decorated class to the list of openers.
 
-    :param openercls:
-    :return:
+    :param openercls: Subclass of :class:`~filehandles.filehandles.Opener` that has `test()` and `open()` methods.
+    :type openercls: Subclass of :class:`~filehandles.filehandles.Opener`.
+    :return: Subclass of :class:`~filehandles.filehandles.Opener`.
+    :rtype: :class:`~filehandles.filehandles.Opener`
     """
     openers.append(openercls)
     return openercls
 
 
 def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype):
-    """
+    """Main function that iterates over list of openers and decides which opener to use.
 
-    :param path:
-    :param openers_list:
-    :param verbose:
-    :param extension_mimetype:
-    :return:
+    :param str path: Path .
+    :param list openers_list: List of openers.
+    :param verbose: Print additional information.
+    :type verbose: :py:obj:`True` or :py:obj:`False`
+    :param extension_mimetype: Key-value pairs to specify non-standard mime types.
+    :return: Filehandle(s).
     """
     for extension, mimetype in extension_mimetype.items():
         mimetypes.add_type(mimetype, '.{}'.format(extension))
@@ -64,50 +63,84 @@ def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype)
         opener = openercls(**extension_mimetype)
 
         if opener.test(path):
-
-            print(opener.__class__.__name__)
-
-            for fh in opener.open(path=path, verbose=verbose):
-                with closing(fh):
-                    yield fh
-            break  # use the first opener that returned positive opener.test()
+            try:
+                for fh in opener.open(path=path, verbose=verbose):
+                    with closing(fh):
+                        yield fh
+                break  # use the first opener that returned positive `opener.test()`
+            except:
+                if verbose:
+                    print('Skipping file: "{}"'.format(path))
+                continue
 
 
 class Opener(object):
+    """Abstract Opener class."""
 
     def __init__(self, **extension_mimetype):
+        """Opener initializer.
+        
+        :param extension_mimetype: Key-value pairs to specify non-standard mime types.
+        """
         self.extensions = tuple(extension_mimetype.keys())
         self.mimetypes = tuple(extension_mimetype.values())
 
     def open(self, path, verbose=False):
+        """Abstract open method to be implemented in subclasses.
+        
+        :param str path: Path.
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         raise NotImplementedError('Subclass must implement specific "open()" method')
 
     @classmethod
     def test(cls, path):
+        """Abstract test method to be implemented in subclasses.
+        
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         raise NotImplementedError('Subclass must implement specific "test()" method')
 
 
 @register
 class Directory(Opener):
+    """Opener that opens files from directory."""
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+        
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         for root, dirlist, filelist in os.walk(path):
             for fname in filelist:
                 mimetype, encoding = mimetypes.guess_type(fname)
 
                 if mimetype not in self.mimetypes:
                     if verbose:
-                        print('Skipping file: {}'.format(os.path.abspath(fname)))
+                        print('Skipping file: "{}"'.format(os.path.abspath(fname)))
                     continue
                 else:
                     if verbose:
-                        print('Processing file: {}'.format(os.path.abspath(fname)))
+                        print('Processing file: "{}"'.format(os.path.abspath(fname)))
 
                     with open(os.path.join(root, fname)) as filehandle:
                         yield filehandle
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+        
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         if os.path.isdir(path):
             return True
         return False
@@ -115,8 +148,16 @@ class Directory(Opener):
 
 @register
 class ZipArchive(Opener):
+    """Opener that opens files from zip archive."""
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), "r") if is_url(path) else zipfile.ZipFile(path) as ziparchive:
             for zipinfo in ziparchive.infolist():
                 if not zipinfo.filename.endswith('/'):
@@ -136,6 +177,12 @@ class ZipArchive(Opener):
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         if mimetype == 'application/zip':
             return True
@@ -144,8 +191,16 @@ class ZipArchive(Opener):
 
 @register
 class TarArchive(Opener):
+    """Opener that opens files from tar archive."""
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         with tarfile.open(fileobj=io.BytesIO(urlopen(path).read())) if is_url(path) else tarfile.open(path) as tararchive:
             for tarinfo in tararchive:
                 if tarinfo.isfile():
@@ -165,6 +220,12 @@ class TarArchive(Opener):
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         if mimetype == 'application/x-tar':
             return True
@@ -173,14 +234,21 @@ class TarArchive(Opener):
 
 @register
 class SingleCompressedTextFile(Opener):
+    """Opener that opens single compressed file."""
 
     opener = {
         'bzip2': bz2.open,
         'gzip': gzip.open,
-        'xz': lzma.open
     }
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
         open = self.opener[encoding]
@@ -197,6 +265,12 @@ class SingleCompressedTextFile(Opener):
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         _, encoding = mimetypes.guess_type(path)
         if encoding in cls.opener.keys():
             return True
@@ -205,8 +279,16 @@ class SingleCompressedTextFile(Opener):
 
 @register
 class SingleTextFileWithNoExtension(Opener):
+    """Opener that opens single file."""
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         source = path if is_url(path) else os.path.abspath(path)
 
         if verbose:
@@ -217,6 +299,12 @@ class SingleTextFileWithNoExtension(Opener):
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         if mimetype is None and encoding is None:
             return True
@@ -225,8 +313,16 @@ class SingleTextFileWithNoExtension(Opener):
 
 @register
 class SingleTextFile(Opener):
+    """Opener that opens single file."""
 
     def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
 
@@ -243,6 +339,12 @@ class SingleTextFile(Opener):
 
     @classmethod
     def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
         mimetype, encoding = mimetypes.guess_type(path)
         if mimetype.startswith('text/'):
             return True
@@ -264,13 +366,8 @@ def is_url(path):
 
 
 if __name__ == "__main__":
-
-    from pprint import pprint
-
     script = sys.argv.pop(0)
     source = sys.argv.pop(0)
-
-    print("openers:", openers)
 
     # Test class
     class Mock(object):
