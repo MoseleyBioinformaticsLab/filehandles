@@ -49,7 +49,7 @@ def register(openercls):
 def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype):
     """Main function that iterates over list of openers and decides which opener to use.
 
-    :param str path: Path .
+    :param str path: Path.
     :param list openers_list: List of openers.
     :param verbose: Print additional information.
     :type verbose: :py:obj:`True` or :py:obj:`False`
@@ -158,7 +158,7 @@ class ZipArchive(Opener):
         :type verbose: :py:obj:`True` or :py:obj:`False` 
         :return: Filehandle(s).
         """
-        with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), "r") if is_url(path) else zipfile.ZipFile(path) as ziparchive:
+        with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), "r") if is_url(path) else zipfile.ZipFile(path, "r") as ziparchive:
             for zipinfo in ziparchive.infolist():
                 if not zipinfo.filename.endswith('/'):
                     mimetype, encoding = mimetypes.guess_type(zipinfo.filename)
@@ -237,7 +237,7 @@ class SingleCompressedTextFile(Opener):
     """Opener that opens single compressed file."""
 
     opener = {
-        'bzip2': bz2.open,
+        'bzip2': bz2.BZ2File,
         'gzip': gzip.open,
     }
 
