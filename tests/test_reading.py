@@ -15,6 +15,7 @@ class Mock(object):
 
 @pytest.mark.parametrize('files_source', [
     'tests/example_data/2rpv.cif',
+    'tests/example_data/2rpv',
     'tests/example_data/2rpv.cif.gz',
     'tests/example_data/2rpv.cif.bz2',
     'tests/example_data/directory',
@@ -22,6 +23,7 @@ class Mock(object):
     'tests/example_data/archive.tar.gz',
     'tests/example_data/archive.tar.bz2',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/2rpv.cif',
+    'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/2rpv',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/2rpv.cif.gz',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/2rpv.cif.bz2',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/archive.zip',
