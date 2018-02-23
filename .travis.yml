@@ -10,7 +10,7 @@ install:
   - pip install pytest-cov
 # command to run tests
 script:
-  - python -m pytest -v --cov=./mwtab
+  - python -m pytest -v --cov=./filehandles
 #generate code coverage report
 after_success:
   - codecov
