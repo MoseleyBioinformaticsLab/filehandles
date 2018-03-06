@@ -31,6 +31,6 @@ class Mock(object):
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/archive.tar.bz2'
 ])
 def test_reading(files_source):
-    for fh in filehandles.filehandles(files_source, cif='text/cif'):
+    for fh in filehandles.filehandles(files_source, verbose=True, cif='text/cif'):
         mock = Mock(fh)
         assert mock.first_line.strip() in ('data_2RPV', b'data_2RPV')
