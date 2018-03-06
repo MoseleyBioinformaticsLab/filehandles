@@ -1,6 +1,15 @@
 filehandles
 ===========
 
+.. image:: https://api.travis-ci.org/MoseleyBioinformaticsLab/nmrstarlib.svg?branch=master
+   :target: https://travis-ci.org/MoseleyBioinformaticsLab/nmrstarlib
+   :alt: Travis CI status
+
+.. image:: https://codecov.io/gh/MoseleyBioinformaticsLab/nmrstarlib/branch/master/graphs/badge.svg?branch=master
+   :target: https://codecov.io/gh/MoseleyBioinformaticsLab/nmrstarlib
+   :alt: Code coverage information
+
+
 The ``filehandles`` package is a Python library that facilitates processing of
 files by removing boilerplate code that you need to write to open files from
 directories, zip archives, tar archives, URL addresses of files, etc. It also
@@ -33,6 +42,11 @@ Upgrade
 .. code:: bash
 
    python3 -m pip install filehandles --upgrade
+
+Quickstart
+~~~~~~~~~~
+
+
 
 
 .. _GitHub: https://github.com/MoseleyBioinformaticsLab/filehandles
