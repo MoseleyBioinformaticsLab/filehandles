@@ -11,6 +11,8 @@ This module provides routines for reading files from difference kinds of sources
    * Compressed zip/tar archive of files.
    * URL address of file.
 """
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 import io
@@ -27,8 +29,10 @@ if sys.version_info.major == 3:
     from urllib.request import urlopen
     from urllib.parse import urlparse
 else:
+    import bz2file as bz2
     from urllib2 import urlopen
     from urlparse import urlparse
+
 
 
 openers = []
@@ -63,15 +67,10 @@ def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype)
         opener = openercls(**extension_mimetype)
 
         if opener.test(path):
-            try:
-                for fh in opener.open(path=path, verbose=verbose):
-                    with closing(fh):
-                        yield fh
-                break  # use the first opener that returned positive `opener.test()`
-            except:
-                if verbose:
-                    print('Skipping file: "{}"'.format(path))
-                continue
+            for fh in opener.open(path=path, verbose=verbose):
+                with closing(fh):
+                    yield fh
+            break  # use the first opener that returned positive `opener.test()`
 
 
 class Opener(object):
@@ -233,13 +232,8 @@ class TarArchive(Opener):
 
 
 @register
-class SingleCompressedTextFile(Opener):
+class SingleBZ2CompressedTextFile(Opener):
     """Opener that opens single compressed file."""
-
-    opener = {
-        'bzip2': bz2.BZ2File,
-        'gzip': gzip.open,
-    }
 
     def open(self, path, verbose=False):
         """Concrete implementation of `open()` method.
@@ -251,9 +245,8 @@ class SingleCompressedTextFile(Opener):
         """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
-        open = self.opener[encoding]
 
-        with open(io.BytesIO(urlopen(path).read())) if is_url(path) else open(path) as filehandle:
+        with bz2.open(urlopen(path)) if is_url(path) else bz2.open(path) as filehandle:
             if mimetype not in self.mimetypes:
                 if verbose:
                     print('Skipping file: {}'.format(source))
@@ -272,7 +265,46 @@ class SingleCompressedTextFile(Opener):
         :rtype: :py:obj:`True` or :py:obj:`False`
         """
         _, encoding = mimetypes.guess_type(path)
-        if encoding in cls.opener.keys():
+        if encoding == 'bzip2':
+            return True
+        return False
+
+
+@register
+class SingleGzipCompressedTextFile(Opener):
+    """Opener that opens single compressed file."""
+
+    def open(self, path, verbose=False):
+        """Concrete implementation of `open()` method.
+
+        :param str path: Path. 
+        :param verbose: Print additional information.
+        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :return: Filehandle(s).
+        """
+        mimetype, encoding = mimetypes.guess_type(path)
+        source = path if is_url(path) else os.path.abspath(path)
+
+        with gzip.GzipFile(fileobj=io.BytesIO(urlopen(path).read())) if is_url(path) else gzip.open(path) as filehandle:
+            if mimetype not in self.mimetypes:
+                if verbose:
+                    print('Skipping file: {}'.format(source))
+                pass
+            else:
+                if verbose:
+                    print('Processing file: {}'.format(source))
+                yield filehandle
+
+    @classmethod
+    def test(cls, path):
+        """Concrete implementation of `test()` method.
+
+        :param str path: Path. 
+        :return: True if opener can be used, False otherwise.
+        :rtype: :py:obj:`True` or :py:obj:`False`
+        """
+        _, encoding = mimetypes.guess_type(path)
+        if encoding == 'gzip':
             return True
         return False
 
@@ -294,8 +326,8 @@ class SingleTextFileWithNoExtension(Opener):
         if verbose:
             print('Processing file: {}'.format(source))
 
-        with urlopen(path) if is_url(path) else open(path) as filehandle:
-            yield filehandle
+        filehandle = urlopen(path) if is_url(path) else open(path)
+        yield filehandle
 
     @classmethod
     def test(cls, path):
@@ -334,8 +366,8 @@ class SingleTextFile(Opener):
             if verbose:
                 print('Processing file: {}'.format(source))
 
-            with urlopen(path) if is_url(path) else open(path) as filehandle:
-                yield filehandle
+            filehandle = urlopen(path) if is_url(path) else open(path)
+            yield filehandle
 
     @classmethod
     def test(cls, path):
@@ -371,7 +403,6 @@ if __name__ == "__main__":
 
     # Test class
     class Mock(object):
-
         def __init__(self, fh):
             self.fh = fh
             self.content = fh.read()
