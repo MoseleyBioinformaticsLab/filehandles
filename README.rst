@@ -46,6 +46,12 @@ Upgrade
 Quickstart
 ~~~~~~~~~~
 
+>>> from filehandles import filehandles
+>>>
+>>> for fh in filehandles('path/to/files'):
+...     # utilize file handle
+...     text = fh.readline()
+>>>
 
 
 
