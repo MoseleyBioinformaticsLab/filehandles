@@ -28,6 +28,11 @@ def find_version():
     return version
 
 
+REQUIRES = [
+    "bz2file >= 0.98"
+]
+
+
 setup(
     name='filehandles',
     version=find_version(),
@@ -40,6 +45,7 @@ setup(
     packages=find_packages(),
     platforms='any',
     long_description=readme(),
+    install_requires=REQUIRES,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
