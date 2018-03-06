@@ -34,8 +34,7 @@ else:
     from urlparse import urlparse
 
 
-
-openers = []
+openers = []  # openers are added at the import time by register decorator
 
 
 def register(openercls):
@@ -395,25 +394,3 @@ def is_url(path):
         return all((parse_result.scheme, parse_result.netloc, parse_result.path))
     except ValueError:
         return False
-
-
-if __name__ == "__main__":
-    script = sys.argv.pop(0)
-    source = sys.argv.pop(0)
-
-    # Test class
-    class Mock(object):
-        def __init__(self, fh):
-            self.fh = fh
-            self.content = fh.read()
-
-    # Example usage
-    def read_files(*sources):
-        for source in sources:
-            for fh in filehandles(source, verbose=True, cif='text/cif', str='text/nmrstar'):
-                yield Mock(fh)
-
-    g = read_files(source)
-
-    for i in g:
-        print(i)
