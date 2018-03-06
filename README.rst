@@ -2,11 +2,11 @@ filehandles
 ===========
 
 .. image:: https://api.travis-ci.org/MoseleyBioinformaticsLab/nmrstarlib.svg?branch=master
-   :target: https://travis-ci.org/MoseleyBioinformaticsLab/nmrstarlib
+   :target: https://travis-ci.org/MoseleyBioinformaticsLab/filehandles
    :alt: Travis CI status
 
 .. image:: https://codecov.io/gh/MoseleyBioinformaticsLab/nmrstarlib/branch/master/graphs/badge.svg?branch=master
-   :target: https://codecov.io/gh/MoseleyBioinformaticsLab/nmrstarlib
+   :target: https://codecov.io/gh/MoseleyBioinformaticsLab/filehandles
    :alt: Code coverage information
 
 
