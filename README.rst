@@ -15,6 +15,7 @@ files by removing boilerplate code that you need to write to open files from
 directories, zip archives, tar archives, URL addresses of files, etc. It also
 automatically closes open file handle after it has been processed.
 
+
 Links
 ~~~~~
 
@@ -43,6 +44,7 @@ Upgrade
 
    python3 -m pip install filehandles --upgrade
 
+
 Quickstart
 ~~~~~~~~~~
 
@@ -52,7 +54,6 @@ Quickstart
 ...     # utilize file handle
 ...     text = fh.readline()
 >>>
-
 
 
 .. _GitHub: https://github.com/MoseleyBioinformaticsLab/filehandles
