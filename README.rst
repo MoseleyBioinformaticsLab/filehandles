@@ -1,11 +1,23 @@
 filehandles
 ===========
 
-.. image:: https://api.travis-ci.org/MoseleyBioinformaticsLab/nmrstarlib.svg?branch=master
+.. image:: https://img.shields.io/pypi/l/filehandles.svg
+   :target: https://choosealicense.com/licenses/mit/
+   :alt: License information
+
+.. image:: https://img.shields.io/pypi/v/filehandles.svg
+   :target: https://pypi.org/project/filehandles/
+   :alt: Current library version
+
+.. image:: https://img.shields.io/pypi/pyversions/filehandles.svg
+   :target: https://pypi.org/project/filehandles/
+   :alt: Supported Python versions
+
+.. image:: https://api.travis-ci.org/MoseleyBioinformaticsLab/filehandles.svg?branch=master
    :target: https://travis-ci.org/MoseleyBioinformaticsLab/filehandles
    :alt: Travis CI status
 
-.. image:: https://codecov.io/gh/MoseleyBioinformaticsLab/nmrstarlib/branch/master/graphs/badge.svg?branch=master
+.. image:: https://codecov.io/gh/MoseleyBioinformaticsLab/filehandles/branch/master/graphs/badge.svg?branch=master
    :target: https://codecov.io/gh/MoseleyBioinformaticsLab/filehandles
    :alt: Code coverage information
 
