@@ -10,7 +10,7 @@ class Mock(object):
 
     def __init__(self, fh):
         self.fh = fh
-        self.first_line  = fh.readline()
+        self.first_line = fh.readline()
 
 
 @pytest.mark.parametrize('files_source', [
