@@ -29,7 +29,8 @@ def find_version():
 
 
 REQUIRES = [
-    "bz2file >= 0.98"
+    'bz2file>=0.98;python_version<"3.4"',
+    'verboselogs >= 1.7'
 ]
 
 
