@@ -34,7 +34,7 @@ else:
     from urlparse import urlparse
 
 
-openers = []  # openers are added at the import time by register decorator
+openers = []  # openers are added at the import time by @register decorator
 
 
 def register(openercls):
