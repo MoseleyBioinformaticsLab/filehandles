@@ -1,1 +1,1 @@
-bz2file >= 0.98
+bz2file >= 0.98; python_version<'3.4'
