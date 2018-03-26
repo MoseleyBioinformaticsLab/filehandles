@@ -5,9 +5,9 @@ import logging
 from .filehandles import filehandles
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
-# Setting default logging handler
+
 try:  # Python 2/3 compatibility code
     from logging import NullHandler
 except ImportError:
@@ -15,4 +15,6 @@ except ImportError:
         def emit(self, record):
             pass
 
+
+# Setting default logging handler
 logging.getLogger(__name__).addHandler(NullHandler())
