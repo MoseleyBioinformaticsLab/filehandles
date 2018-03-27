@@ -92,8 +92,26 @@ class Opener(object):
         
         :param extension_mimetype: Key-value pairs to specify non-standard mime types.
         """
-        self.extensions = tuple(extension_mimetype.keys())
-        self.mimetypes = tuple(extension_mimetype.values())
+        for ext, mimetype in extension_mimetype.items():
+            mimetypes.add_type(type=mimetype, ext=ext)
+
+    @property
+    def mimetypes(self):
+        """Available mimetypes.
+        
+        :return: Tuple of mimetypes.
+        :rtype: :py:class:`tuple`
+        """
+        return tuple(mimetypes.types_map.values())
+
+    @property
+    def extensions(self):
+        """Available extensions.
+
+        :return: Tuple of extensions.
+        :rtype: :py:class:`tuple`
+        """
+        return tuple(mimetypes.types_map.keys())
 
     def open(self, path):
         """Abstract open method to be implemented in subclasses.
@@ -161,7 +179,7 @@ class ZipArchive(Opener):
         :type verbose: :py:obj:`True` or :py:obj:`False` 
         :return: Filehandle(s).
         """
-        with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), "r") if is_url(path) else zipfile.ZipFile(path, "r") as ziparchive:
+        with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), 'r') if is_url(path) else zipfile.ZipFile(path, 'r') as ziparchive:
             for zipinfo in ziparchive.infolist():
                 if not zipinfo.filename.endswith('/'):
                     mimetype, encoding = mimetypes.guess_type(zipinfo.filename)
