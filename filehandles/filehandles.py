@@ -18,6 +18,7 @@ from __future__ import unicode_literals
 import os
 import io
 import sys
+import re
 import zipfile
 import tarfile
 import bz2
@@ -58,11 +59,12 @@ def register(openercls):
     return openercls
 
 
-def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype):
+def filehandles(path, openers_list=openers, pattern='', verbose=False, **extension_mimetype):
     """Main function that iterates over list of openers and decides which opener to use.
 
     :param str path: Path.
     :param list openers_list: List of openers.
+    :param str pattern: Regular expression pattern.
     :param verbose: Print additional information.
     :type verbose: :py:obj:`True` or :py:obj:`False`
     :param extension_mimetype: Key-value pairs to specify non-standard mime types.
@@ -78,9 +80,9 @@ def filehandles(path, openers_list=openers, verbose=False, **extension_mimetype)
         opener = openercls(**extension_mimetype)
 
         if opener.test(path):
-            for fh in opener.open(path=path):
-                with closing(fh):
-                    yield fh
+            for filehandle in opener.open(path=path, pattern=pattern):
+                with closing(filehandle):
+                    yield filehandle
             break  # use the first opener that returned positive `opener.test()`
 
 
@@ -113,10 +115,11 @@ class Opener(object):
         """
         return tuple(mimetypes.types_map.keys())
 
-    def open(self, path):
+    def open(self, path, pattern):
         """Abstract open method to be implemented in subclasses.
         
         :param str path: Path.
+        :param str pattern: Regular expression pattern.
         :return: Filehandle(s).
         """
         raise NotImplementedError('Subclass must implement specific "open()" method')
@@ -136,23 +139,33 @@ class Opener(object):
 class Directory(Opener):
     """Opener that opens files from directory."""
 
-    def open(self, path):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
         
         :param str path: Path.
+        :param str pattern: Regular expression pattern.
         :return: Filehandle(s).
         """
         for root, dirlist, filelist in os.walk(path):
-            for fname in filelist:
-                mimetype, encoding = mimetypes.guess_type(fname)
+            for filename in filelist:
+                mimetype, encoding = mimetypes.guess_type(filename)
 
-                if mimetype not in self.mimetypes:
-                    logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(os.path.abspath(fname), mimetype))
+                if mimetype in ('application/x-tar', 'application/zip') or encoding in ('gzip', 'bzip2'):
+                    logger.verbose('Skipping compressed file: {}'.format(os.path.abspath(filename)))
                     continue
-                else:
-                    logger.verbose('Processing file: {}'.format(os.path.abspath(fname)))
-                    with open(os.path.join(root, fname)) as filehandle:
+
+                if mimetype in self.mimetypes:
+                    if pattern:
+                        if not re.match(pattern, filename):
+                            logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
+                            continue
+
+                    logger.verbose('Processing file: {}'.format(os.path.abspath(filename)))
+                    with open(os.path.join(root, filename)) as filehandle:
                         yield filehandle
+                else:
+                    logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(os.path.abspath(filename), mimetype))
+                    continue
 
     @classmethod
     def test(cls, path):
@@ -171,12 +184,12 @@ class Directory(Opener):
 class ZipArchive(Opener):
     """Opener that opens files from zip archive."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
         :param str path: Path. 
         :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str pattern: Regular expression pattern.
         :return: Filehandle(s).
         """
         with zipfile.ZipFile(io.BytesIO(urlopen(path).read()), 'r') if is_url(path) else zipfile.ZipFile(path, 'r') as ziparchive:
@@ -185,13 +198,20 @@ class ZipArchive(Opener):
                     mimetype, encoding = mimetypes.guess_type(zipinfo.filename)
                     source = os.path.join(path, zipinfo.filename)
 
-                    if mimetype not in self.mimetypes:
-                        logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
-                        continue
-                    else:
+                    if mimetype in self.mimetypes:
+                        if pattern:
+                            if not re.match(pattern, zipinfo.filename):
+                                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(
+                                    os.path.abspath(zipinfo.filename), pattern))
+                                continue
+
                         logger.verbose('Processing file: {}'.format(source))
                         filehandle = ziparchive.open(zipinfo)
                         yield filehandle
+                    else:
+                        logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
+                        continue
+
 
     @classmethod
     def test(cls, path):
@@ -211,12 +231,11 @@ class ZipArchive(Opener):
 class TarArchive(Opener):
     """Opener that opens files from tar archive."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
-        :param str path: Path. 
-        :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str path: Path.
+        :param str pattern: Regular expression pattern.
         :return: Filehandle(s).
         """
         with tarfile.open(fileobj=io.BytesIO(urlopen(path).read())) if is_url(path) else tarfile.open(path) as tararchive:
@@ -225,14 +244,20 @@ class TarArchive(Opener):
                     mimetype, encoding = mimetypes.guess_type(tarinfo.name)
                     source = os.path.join(path, tarinfo.name)
 
-                    if mimetype not in self.mimetypes:
+                    if mimetype in self.mimetypes:
+                        if pattern:
+                            if not re.match(pattern, tarinfo.name):
+                                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(
+                                    os.path.abspath(tarinfo.name), pattern))
+                                continue
+
+                        logger.verbose('Processing file: {}'.format(source))
+                        filehandle = tararchive.extractfile(tarinfo)
+                        yield filehandle
+                    else:
                         logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
                         continue
-                    else:
-                        logger.verbose('Processing file: {}'.format(source))
 
-                    filehandle = tararchive.extractfile(tarinfo)
-                    yield filehandle
 
     @classmethod
     def test(cls, path):
@@ -252,24 +277,27 @@ class TarArchive(Opener):
 class SingleBZ2CompressedTextFile(Opener):
     """Opener that opens single compressed file."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
         :param str path: Path. 
-        :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str pattern: Regular expression pattern.
         :return: Filehandle(s).
         """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
+        filename = os.path.basename(path)
 
-        with bz2.open(urlopen(path)) if is_url(path) else bz2.open(path) as filehandle:
-            if mimetype not in self.mimetypes:
-                logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
-                pass
-            else:
-                logger.verbose('Processing file: {}'.format(source))
+        if mimetype in self.mimetypes:
+            if pattern and not re.match(pattern, filename):
+                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(path), pattern))
+                return
+
+            logger.verbose('Processing file: {}'.format(source))
+            with bz2.open(urlopen(path)) if is_url(path) else bz2.open(path) as filehandle:
                 yield filehandle
+        else:
+            logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
 
     @classmethod
     def test(cls, path):
@@ -289,24 +317,27 @@ class SingleBZ2CompressedTextFile(Opener):
 class SingleGzipCompressedTextFile(Opener):
     """Opener that opens single compressed file."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
         :param str path: Path. 
-        :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str pattern: Regular expression pattern. 
         :return: Filehandle(s).
         """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
+        filename = os.path.basename(path)
 
-        with gzip.GzipFile(fileobj=io.BytesIO(urlopen(path).read())) if is_url(path) else gzip.open(path) as filehandle:
-            if mimetype not in self.mimetypes:
-                logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
-                pass
-            else:
-                logger.verbose('Processing file: {}'.format(source))
+        if mimetype in self.mimetypes:
+            if pattern and not re.match(pattern, filename):
+                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
+                return
+
+            logger.verbose('Processing file: {}'.format(source))
+            with gzip.GzipFile(fileobj=io.BytesIO(urlopen(path).read())) if is_url(path) else gzip.open(path) as filehandle:
                 yield filehandle
+        else:
+            logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
 
     @classmethod
     def test(cls, path):
@@ -326,15 +357,20 @@ class SingleGzipCompressedTextFile(Opener):
 class SingleTextFileWithNoExtension(Opener):
     """Opener that opens single file."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
         :param str path: Path. 
-        :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str pattern: Regular expression pattern. 
         :return: Filehandle(s).
         """
         source = path if is_url(path) else os.path.abspath(path)
+        filename = os.path.basename(path)
+
+        if pattern and not re.match(pattern, filename):
+            logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
+            return
+
         logger.verbose('Processing file: {}'.format(source))
         filehandle = urlopen(path) if is_url(path) else open(path)
         yield filehandle
@@ -357,24 +393,27 @@ class SingleTextFileWithNoExtension(Opener):
 class SingleTextFile(Opener):
     """Opener that opens single file."""
 
-    def open(self, path, verbose=False):
+    def open(self, path, pattern):
         """Concrete implementation of `open()` method.
 
         :param str path: Path. 
-        :param verbose: Print additional information.
-        :type verbose: :py:obj:`True` or :py:obj:`False` 
+        :param str pattern: Regular expression pattern.  
         :return: Filehandle(s).
         """
         mimetype, encoding = mimetypes.guess_type(path)
         source = path if is_url(path) else os.path.abspath(path)
+        filename = os.path.basename(path)
 
         if mimetype not in self.mimetypes:
-            logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
-            pass
-        else:
+            if pattern and not re.match(pattern, filename):
+                logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
+                return
+
             logger.verbose('Processing file: {}'.format(source))
             filehandle = urlopen(path) if is_url(path) else open(path)
             yield filehandle
+        else:
+            logger.verbose('Skipping file: {}, mimetype "{}" is not defined'.format(source, mimetype))
 
     @classmethod
     def test(cls, path):
