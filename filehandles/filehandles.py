@@ -155,10 +155,9 @@ class Directory(Opener):
                     continue
 
                 if mimetype in self.mimetypes:
-                    if pattern:
-                        if not re.match(pattern, filename):
-                            logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
-                            continue
+                    if pattern and not re.match(pattern, filename):
+                        logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
+                        continue
 
                     logger.verbose('Processing file: {}'.format(os.path.abspath(filename)))
                     with open(os.path.join(root, filename)) as filehandle:
@@ -199,11 +198,9 @@ class ZipArchive(Opener):
                     source = os.path.join(path, zipinfo.filename)
 
                     if mimetype in self.mimetypes:
-                        if pattern:
-                            if not re.match(pattern, zipinfo.filename):
-                                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(
-                                    os.path.abspath(zipinfo.filename), pattern))
-                                continue
+                        if pattern and not re.match(pattern, zipinfo.filename):
+                            logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(zipinfo.filename), pattern))
+                            continue
 
                         logger.verbose('Processing file: {}'.format(source))
                         filehandle = ziparchive.open(zipinfo)
@@ -245,11 +242,9 @@ class TarArchive(Opener):
                     source = os.path.join(path, tarinfo.name)
 
                     if mimetype in self.mimetypes:
-                        if pattern:
-                            if not re.match(pattern, tarinfo.name):
-                                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(
-                                    os.path.abspath(tarinfo.name), pattern))
-                                continue
+                        if pattern and not re.match(pattern, tarinfo.name):
+                            logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(tarinfo.name), pattern))
+                            continue
 
                         logger.verbose('Processing file: {}'.format(source))
                         filehandle = tararchive.extractfile(tarinfo)
