@@ -3,6 +3,15 @@
 Release History
 ===============
 
+0.2.0 (2018-03-29)
+~~~~~~~~~~~~~~~~~~
+
+**New features**
+
+- Added 'pattern' argument - regular expression pattern to include files
+  only with specified pattern.
+
+
 0.1.2 (2018-03-27)
 ~~~~~~~~~~~~~~~~~~
 
