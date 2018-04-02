@@ -3,6 +3,15 @@
 Release History
 ===============
 
+0.3.0 (2018-04-02)
+~~~~~~~~~~~~~~~~~~
+
+**Improvements**
+
+- Rewrote `filehandles` module using (EAFP principle) and removed tests (LBYL principle).
+- Removed path checking based on `mimetypes`.
+
+
 0.2.0 (2018-03-29)
 ~~~~~~~~~~~~~~~~~~
 
