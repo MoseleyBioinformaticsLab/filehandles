@@ -8,7 +8,8 @@ Release History
 
 **Improvements**
 
-- Rewrote `filehandles` module using (EAFP style) and removed tests (LBYL style).
+- Rewrote `filehandles` module using (EAFP style) and removed path.test()
+  methods (LBYL style).
 - Removed path checking based on `mimetypes`.
 
 
