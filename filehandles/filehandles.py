@@ -84,11 +84,10 @@ def filehandles(path, openers_list=openers, pattern='', verbose=False):
             for filehandle in opener(path=path, pattern=pattern, verbose=verbose):
                 with closing(filehandle):
                     yield filehandle
-
             break  # use the first successful opener function
 
-        except (zipfile.BadZipfile, tarfile.ReadError, GZValidationError, BZ2ValidationError, IOError):
-            continue
+        except (zipfile.BadZipfile, tarfile.ReadError, GZValidationError, BZ2ValidationError, IOError, NotADirectoryError):
+             continue
 
         else:
             logger.verbose('No opener found for path: "{}"'.format(path))
@@ -103,17 +102,21 @@ def directory_opener(path, pattern='', verbose=False):
     :param str pattern: Regular expression pattern.
     :return: Filehandle(s).
     """
-    openers_list = [opener for opener in openers if not opener.__name__.startswith('directory')]  # remove directory
+    if not os.path.isdir(path):
+        raise NotADirectoryError
+    else:
+        openers_list = [opener for opener in openers if not opener.__name__.startswith('directory')]  # remove directory
 
-    for root, dirlist, filelist in os.walk(path):
-        for filename in filelist:
-            if pattern and not re.match(pattern, filename):
-                logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
-                continue
+        for root, dirlist, filelist in os.walk(path):
+            for filename in filelist:
 
-            filename_path = os.path.abspath(os.path.join(root, filename))
-            for filehandle in filehandles(filename_path, openers_list=openers_list, pattern=pattern, verbose=verbose):
-                yield filehandle
+                if pattern and not re.match(pattern, filename):
+                    logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(filename), pattern))
+                    continue
+
+                filename_path = os.path.abspath(os.path.join(root, filename))
+                for filehandle in filehandles(filename_path, openers_list=openers_list, pattern=pattern, verbose=verbose):
+                    yield filehandle
 
 
 @register
@@ -161,26 +164,6 @@ def tararchive_opener(path, pattern='', verbose=False):
 
 
 @register
-def text_opener(path, pattern='', verbose=False):
-    """Opener that opens single text file.
-
-    :param str path: Path.
-    :param str pattern: Regular expression pattern.
-    :return: Filehandle(s).
-    """
-    source = path if is_url(path) else os.path.abspath(path)
-    filename = os.path.basename(path)
-
-    if pattern and not re.match(pattern, filename):
-        logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(path), pattern))
-        return
-
-    logger.verbose('Processing file: {}'.format(source))
-    filehandle = urlopen(path) if is_url(path) else open(path)
-    yield filehandle
-
-
-@register
 def gzip_opener(path, pattern='', verbose=False):
     """Opener that opens single gzip compressed file.
 
@@ -221,13 +204,33 @@ def bz2_opener(path, pattern='', verbose=False):
         return
 
     try:
-        filehandle = bz2.open(urlopen(path)) if is_url(path) else bz2.open(path)
+        filehandle = bz2.open(io.BytesIO(urlopen(path).read())) if is_url(path) else bz2.open(path)
         filehandle.read(1)
         filehandle.seek(0)
         logger.verbose('Processing file: {}'.format(source))
         yield filehandle
     except (OSError, IOError):
         raise BZ2ValidationError
+
+
+@register
+def text_opener(path, pattern='', verbose=False):
+    """Opener that opens single text file.
+
+    :param str path: Path.
+    :param str pattern: Regular expression pattern.
+    :return: Filehandle(s).
+    """
+    source = path if is_url(path) else os.path.abspath(path)
+    filename = os.path.basename(path)
+
+    if pattern and not re.match(pattern, filename):
+        logger.verbose('Skipping file: {}, did not match regex pattern "{}"'.format(os.path.abspath(path), pattern))
+        return
+
+    filehandle = urlopen(path) if is_url(path) else open(path)
+    logger.verbose('Processing file: {}'.format(source))
+    yield filehandle
 
 
 def is_url(path):
