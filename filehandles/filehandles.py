@@ -55,12 +55,16 @@ openers = []  # openers are added at the import time by @register decorator
 
 class GZValidationError(Exception):
     """Raises exception if not valid gzip-compressed file."""
-    pass
+
+    def __init__(self, *args, **kwargs):
+        pass
 
 
 class BZ2ValidationError(Exception):
     """Raises exception if not valid bz2-compressed file."""
-    pass
+
+    def __init__(self, *args, **kwargs):
+        pass
 
 
 def register(opener_function):
