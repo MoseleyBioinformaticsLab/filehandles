@@ -13,7 +13,7 @@ class Mock(object):
         self.first_line = fh.readline()
 
 
-@pytest.mark.parametrize('files_source', [
+files_source = [
     'tests/example_data/2rpv.cif',
     'tests/example_data/2rpv',
     'tests/example_data/2rpv.cif.gz',
@@ -29,7 +29,10 @@ class Mock(object):
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/archive.zip',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/archive.tar.gz',
     'https://raw.githubusercontent.com/MoseleyBioinformaticsLab/filehandles/master/tests/example_data/archive.tar.bz2'
-])
+]
+
+
+@pytest.mark.parametrize('files_source', files_source)
 def test_reading(files_source):
     for fh in filehandles.filehandles(files_source, pattern='[\w\d\s]+', verbose=True):
         mock = Mock(fh)
