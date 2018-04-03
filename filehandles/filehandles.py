@@ -37,6 +37,13 @@ else:
     from urlparse import urlparse
 
 
+    class NotADirectoryError(OSError):
+        """Operation only works on directories."""
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+
 # Set verbose logger
 logger = verboselogs.VerboseLogger(__name__)
 logger.addHandler(logging.StreamHandler())
