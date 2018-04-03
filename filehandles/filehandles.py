@@ -24,8 +24,9 @@ import tarfile
 import bz2
 import gzip
 from contextlib import closing
+import logging
 
-import logging, verboselogs
+import verboselogs
 
 
 if sys.version_info.major == 3:
@@ -35,7 +36,6 @@ else:
     import bz2file as bz2
     from urllib2 import urlopen
     from urlparse import urlparse
-
 
     class NotADirectoryError(OSError):
         """Operation only works on directories."""
@@ -97,7 +97,8 @@ def filehandles(path, openers_list=openers, pattern='', verbose=False):
                     yield filehandle
             break  # use the first successful opener function
 
-        except (zipfile.BadZipfile, tarfile.ReadError, GZValidationError, BZ2ValidationError, IOError, NotADirectoryError):
+        except (zipfile.BadZipfile, tarfile.ReadError, GZValidationError,
+                BZ2ValidationError, IOError, NotADirectoryError):
              continue
 
         else:
