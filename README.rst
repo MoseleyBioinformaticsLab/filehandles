@@ -31,8 +31,8 @@ automatically closes open file handle after it has been processed.
 Links
 ~~~~~
 
-   * mwtab @ GitHub_
-   * mwtab @ PyPI_
+   * ``filehandles`` @ GitHub_
+   * ``filehandles`` @ PyPI_
 
 
 Installation
