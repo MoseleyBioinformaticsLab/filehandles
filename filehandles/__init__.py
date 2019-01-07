@@ -5,7 +5,7 @@ import logging
 from .filehandles import filehandles
 
 
-__version__ = "0.3.1"
+__version__ = "0.3.1.post1"
 
 
 try:  # Python 2/3 compatibility code
